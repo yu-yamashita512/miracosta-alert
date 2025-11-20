@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "monitor-rooms": {
+      "verify_jwt": false
+    }
+  }
+}
