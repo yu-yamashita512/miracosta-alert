@@ -34,6 +34,9 @@ export default async function handler(
       return res.status(404).json({ error: 'User not found' })
     }
 
+    // 型アサーション
+    const userEmail = (user as { email: string }).email
+
     // メール送信設定
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -50,7 +53,7 @@ export default async function handler(
     // メール内容
     const mailOptions = {
       from: process.env.SMTP_USER,
-      to: user.email,
+      to: userEmail,
       subject: '【ミラコスタ】空室通知 - ' + room.date,
       html: `
         <!DOCTYPE html>
