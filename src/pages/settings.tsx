@@ -37,12 +37,13 @@ export default function Settings() {
       .single()
 
     if (settingsData) {
+      const data = settingsData as any
       setSettings({
-        targetDates: settingsData.target_dates || [],
-        targetRoomTypes: settingsData.target_room_types || [],
-        notificationViaEmail: settingsData.notification_via_email,
-        notificationViaLine: settingsData.notification_via_line,
-        isActive: settingsData.is_active,
+        targetDates: data.target_dates || [],
+        targetRoomTypes: data.target_room_types || [],
+        notificationViaEmail: data.notification_via_email,
+        notificationViaLine: data.notification_via_line,
+        isActive: data.is_active,
       })
     }
 
@@ -53,8 +54,11 @@ export default function Settings() {
       .eq('id', session.user.id)
       .single()
 
-    if (userData?.line_notify_token) {
-      setLineToken(userData.line_notify_token)
+    if (userData) {
+      const user = userData as any
+      if (user.line_notify_token) {
+        setLineToken(user.line_notify_token)
+      }
     }
 
     setLoading(false)
@@ -69,7 +73,7 @@ export default function Settings() {
       if (!session) throw new Error('ログインが必要です')
 
       // 通知設定を更新
-      const { error: settingsError } = await supabase
+      const { error: settingsError } = await (supabase as any)
         .from('notification_settings')
         .update({
           target_dates: settings.targetDates,
@@ -84,7 +88,7 @@ export default function Settings() {
 
       // LINEトークンを更新
       if (lineToken) {
-        const { error: tokenError } = await supabase
+        const { error: tokenError } = await (supabase as any)
           .from('users')
           .update({ line_notify_token: lineToken })
           .eq('id', session.user.id)
