@@ -31,19 +31,27 @@ export default function Signup() {
 
       if (data.user) {
         // ユーザーテーブルにも追加
-        await supabase.from('users').insert({
+        const { error: userInsertError } = await supabase.from('users').insert([{
           id: data.user.id,
           email: data.user.email!,
           subscription_plan: 'free',
-        })
+        }] as any)
+
+        if (userInsertError) {
+          console.error('User insert error:', userInsertError)
+        }
 
         // 初期通知設定を作成
-        await supabase.from('notification_settings').insert({
+        const { error: settingsInsertError } = await supabase.from('notification_settings').insert([{
           user_id: data.user.id,
           notification_via_email: true,
           notification_via_line: false,
           is_active: true,
-        })
+        }] as any)
+
+        if (settingsInsertError) {
+          console.error('Settings insert error:', settingsInsertError)
+        }
 
         setSuccess(true)
         setTimeout(() => router.push('/dashboard'), 2000)
