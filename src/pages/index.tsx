@@ -9,11 +9,10 @@ import { Search, Calendar, Users, Castle, Star, ChevronDown } from 'lucide-react
 
 const cinzel = Cinzel({ subsets: ['latin'], weight: ['400', '700'] });
 const notoSerif = Noto_Serif_JP({ subsets: ['latin'], weight: ['400', '700'] });
-
+export default function Home() {
   const [hotel, setHotel] = useState('');
   const [date, setDate] = useState('');
   const router = useRouter();
-
   return (
     <main className={`min-h-screen bg-[#0C1445] text-[#F0F4F8] ${notoSerif.className} relative overflow-hidden`}>
       {/* 背景の魔法エフェクト（星のきらめき） */}
