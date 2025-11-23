@@ -18,13 +18,7 @@ function extractHotelsList(data: any): any[] {
   return []
 }
 function normalizePlanEntries(hotelEntry: any): Array<{ planName: string; price: number | null }> {
-  const out: Array<{ planName: string; price: number | null }> = []
-
-  // hotelEntry の形は多様
-  // パターンA: { hotel: { hotelBasicInfo: {...} }, hotelPlans: [...] }
-  // パターンB: [ {hotelBasicInfo}, {planList} ]
-  // パターンC: { plans: [...] }
-
+  const out: Array<{ planName: string; price: number | null }> = [];
   const candidatePlans =
     hotelEntry.hotelPlans ||
     hotelEntry.plans ||
@@ -32,52 +26,35 @@ function normalizePlanEntries(hotelEntry: any): Array<{ planName: string; price:
     hotelEntry[1]?.hotelPlans ||
     hotelEntry[1]?.plans ||
     hotelEntry[0]?.plans ||
-    []
-
+    [];
   if (Array.isArray(candidatePlans) && candidatePlans.length > 0) {
     for (const p of candidatePlans) {
-      const planName = p.planName || p.plan_name || p.name || p.title || (p.plan && p.plan.name) || JSON.stringify(p).slice(0, 60)
-      // 価格情報も様々な場所にある
-      let price: number | null = null
-      if (p.price != null) price = Number(p.price)
-      else if (p.charge != null) price = Number(p.charge)
-      else if (p.roomPrice != null) price = Number(p.roomPrice)
-      else if (p.priceList && Array.isArray(p.priceList) && p.priceList[0]) price = Number(p.priceList[0].price || p.priceList[0].amount || null)
-
-      out.push({ planName: String(planName || 'プラン'), price: isNaN(price as number) ? null : price })
+      const planName = p.planName || p.plan_name || p.name || p.title || (p.plan && p.plan.name) || JSON.stringify(p).slice(0, 60);
+      let price: number | null = null;
+      if (p.price != null) price = Number(p.price);
+      else if (p.charge != null) price = Number(p.charge);
+      else if (p.roomPrice != null) price = Number(p.roomPrice);
+      else if (p.priceList && Array.isArray(p.priceList) && p.priceList[0]) price = Number(p.priceList[0].price || p.priceList[0].amount || null);
+      out.push({ planName: String(planName || 'プラン'), price: isNaN(price as number) ? null : price });
     }
   }
-
-  return out
+  return out;
 }
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
-  const appId = process.env.RAKUTEN_APP_ID
-  if (!appId) return res.status(500).json({ error: 'RAKUTEN_APP_ID not configured' })
-
 
 // VacantHotelSearch の結果からプラン情報を抽出するユーティリティ
 function normalizeVacantHotel(hotelWrapper: any) {
-  // hotelWrapper は { hotel: [ ... ] } の形式が多い
   const out: Array<any> = [];
   const hotelArray = hotelWrapper.hotel || hotelWrapper || [];
-  // ホテル基本情報は hotelArray の中の hotelBasicInfo にある
   const basic = hotelArray.find((x: any) => x.hotelBasicInfo)?.hotelBasicInfo || {};
-  // roomInfo 要素を探す
   const roomInfoObj = hotelArray.find((x: any) => x.roomInfo);
   const roomInfo = roomInfoObj?.roomInfo || [];
-
-  // roomInfo 配列は要素が分割されている場合がある（roomBasicInfo と dailyCharge が別要素）
   for (let i = 0; i < roomInfo.length; i++) {
     const r = roomInfo[i];
     const roomBasic = r.roomBasicInfo || r.roomBasic || null;
-    // dailyCharge が同じ要素になければ次の要素を参照する
     let daily = r.dailyCharge || r.daily || null;
     if (!daily && roomInfo[i + 1]) {
       daily = roomInfo[i + 1].dailyCharge || roomInfo[i + 1].daily || null;
     }
-
     if (roomBasic) {
       const rawPrice = daily && (daily.rakutenCharge || daily.total || null);
       out.push({
@@ -91,9 +68,9 @@ function normalizeVacantHotel(hotelWrapper: any) {
       });
     }
   }
-
   return { hotelName: basic.hotelName || basic.hotel_name || null, entries: out };
 }
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
