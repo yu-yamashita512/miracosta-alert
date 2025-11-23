@@ -58,12 +58,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const appId = process.env.RAKUTEN_APP_ID
   if (!appId) return res.status(500).json({ error: 'RAKUTEN_APP_ID not configured' })
 
+
+// VacantHotelSearch の結果からプラン情報を抽出するユーティリティ
+function normalizeVacantHotel(hotelWrapper: any) {
+  // hotelWrapper は { hotel: [ ... ] } の形式が多い
+  const out: Array<any> = [];
+  const hotelArray = hotelWrapper.hotel || hotelWrapper || [];
+  // ホテル基本情報は hotelArray の中の hotelBasicInfo にある
+  const basic = hotelArray.find((x: any) => x.hotelBasicInfo)?.hotelBasicInfo || {};
+  // roomInfo 要素を探す
+  const roomInfoObj = hotelArray.find((x: any) => x.roomInfo);
+  const roomInfo = roomInfoObj?.roomInfo || [];
+
+  // roomInfo 配列は要素が分割されている場合がある（roomBasicInfo と dailyCharge が別要素）
+  for (let i = 0; i < roomInfo.length; i++) {
+    const r = roomInfo[i];
+    const roomBasic = r.roomBasicInfo || r.roomBasic || null;
+    // dailyCharge が同じ要素になければ次の要素を参照する
+    let daily = r.dailyCharge || r.daily || null;
+    if (!daily && roomInfo[i + 1]) {
+      daily = roomInfo[i + 1].dailyCharge || roomInfo[i + 1].daily || null;
+    }
+
+    if (roomBasic) {
+      const rawPrice = daily && (daily.rakutenCharge || daily.total || null);
+      out.push({
+        room_name: roomBasic.roomName || null,
+        room_class: roomBasic.roomClass || null,
+        planId: roomBasic.planId || null,
+        planName: roomBasic.planName || null,
+        reserveUrl: roomBasic.reserveUrl || null,
+        stayDate: daily?.stayDate || null,
+        price: rawPrice != null ? Number(rawPrice) : null,
+      });
+    }
+  }
+
+  return { hotelName: basic.hotelName || basic.hotel_name || null, entries: out };
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const appId = process.env.RAKUTEN_APP_ID
+  if (!appId) return res.status(500).json({ error: 'RAKUTEN_APP_ID not configured' })
+
   try {
-      const body = req.body || {}
-      const params = body.params || {}
-      const upsert = !!body.upsert
-      // VacantHotelSearch をデフォルトにする（より確実に空室情報が取得できるため）
-      const endpoint = body.fullUrl || 'https://app.rakuten.co.jp/services/api/Travel/VacantHotelSearch/20170426'
+    const body = req.body || {}
+    const params = body.params || {}
+    const upsert = !!body.upsert
+    // VacantHotelSearch をデフォルトにする（より確実に空室情報が取得できるため）
+    const endpoint = body.fullUrl || 'https://app.rakuten.co.jp/services/api/Travel/VacantHotelSearch/20170426'
 
     const url = new URL(endpoint)
     url.searchParams.set('applicationId', appId)
@@ -83,44 +128,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 楽天アフィリエイトID を付与（存在する場合）
     const affiliateId = process.env.RAKUTEN_AFFILIATE_ID || null
     const dataWithAffiliate = affiliateId ? attachAffiliateUrlsToResponse(data, affiliateId) : data
-
-    // VacantHotelSearch の結果からプラン情報を抽出するユーティリティ
-    function normalizeVacantHotel(hotelWrapper: any) {
-      // hotelWrapper は { hotel: [ ... ] } の形式が多い
-      const out: Array<any> = []
-      const hotelArray = hotelWrapper.hotel || hotelWrapper || []
-      // ホテル基本情報は hotelArray の中の hotelBasicInfo にある
-      const basic = hotelArray.find((x: any) => x.hotelBasicInfo)?.hotelBasicInfo || {}
-      // roomInfo 要素を探す
-      const roomInfoObj = hotelArray.find((x: any) => x.roomInfo)
-      const roomInfo = roomInfoObj?.roomInfo || []
-
-      // roomInfo 配列は要素が分割されている場合がある（roomBasicInfo と dailyCharge が別要素）
-      for (let i = 0; i < roomInfo.length; i++) {
-        const r = roomInfo[i]
-        const roomBasic = r.roomBasicInfo || r.roomBasic || null
-        // dailyCharge が同じ要素になければ次の要素を参照する
-        let daily = r.dailyCharge || r.daily || null
-        if (!daily && roomInfo[i + 1]) {
-          daily = roomInfo[i + 1].dailyCharge || roomInfo[i + 1].daily || null
-        }
-
-        if (roomBasic) {
-          const rawPrice = daily && (daily.rakutenCharge || daily.total || null)
-          out.push({
-            room_name: roomBasic.roomName || null,
-            room_class: roomBasic.roomClass || null,
-            planId: roomBasic.planId || null,
-            planName: roomBasic.planName || null,
-            reserveUrl: roomBasic.reserveUrl || null,
-            stayDate: daily?.stayDate || null,
-            price: rawPrice != null ? Number(rawPrice) : null,
-          })
-        }
-      }
-
-      return { hotelName: basic.hotelName || basic.hotel_name || null, entries: out }
-    }
 
     if (upsert && params.checkinDate) {
       const checkinDate = params.checkinDate as string
