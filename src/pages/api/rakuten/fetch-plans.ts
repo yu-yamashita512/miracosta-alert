@@ -17,7 +17,6 @@ function extractHotelsList(data: any): any[] {
   if (Array.isArray(data)) return data
   return []
 }
-
 function normalizePlanEntries(hotelEntry: any): Array<{ planName: string; price: number | null }> {
   const out: Array<{ planName: string; price: number | null }> = []
 
