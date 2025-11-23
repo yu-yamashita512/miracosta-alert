@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { Cinzel, Noto_Serif_JP } from 'next/font/google';
 import { Search, Calendar, Users, Castle, Star, ChevronDown } from 'lucide-react';
 
