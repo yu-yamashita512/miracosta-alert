@@ -58,14 +58,6 @@ const CalendarPage: NextPage = () => {
             entries.forEach((entry) => {
               if (!existingDates.has(entry.date)) {
                 merged[room].push(entry)
-              } else {
-                // 既存のエントリを更新（rakutenソースを優先）
-                const index = merged[room].findIndex((e) => e.date === entry.date)
-                if (index >= 0) {
-                  if (entry.source === 'rakuten' || merged[room][index].source === 'mock') {
-                    merged[room][index] = entry
-                  }
-                }
               }
             })
             merged[room].sort((a, b) => a.date.localeCompare(b.date))
@@ -75,18 +67,9 @@ const CalendarPage: NextPage = () => {
 
         // 部屋の選択状態を更新（モックデータはデフォルトで非表示）
         setSelectedRooms((prev) => {
-          const map: Record<string, boolean> = { ...prev }
+          const map = Object.assign({}, prev) as Record<string, boolean>
           (Object.entries(json.data) as [string, AvEntry[]][]).forEach(([room, arr]) => {
-            const hasReal = arr.some((e) => e.source && e.source !== 'mock')
-            const isMockOnly = arr.every((e) => !e.source || e.source === 'mock')
-            if (hasReal) {
-              map[room] = true
-            } else if (isMockOnly) {
-              // モックのみの部屋はデフォルトで非表示
-              map[room] = false
-            } else if (map[room] === undefined) {
-              map[room] = false
-            }
+            map[room] = true
           })
           return map
         })
