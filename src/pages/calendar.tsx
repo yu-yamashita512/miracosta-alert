@@ -49,7 +49,7 @@ const CalendarPage: NextPage = () => {
         // 既存のデータとマージ（同じキーは上書き）
         setData((prev) => {
           const merged: Record<string, AvEntry[]> = { ...prev }
-          Object.entries(json.data).forEach(([room, entries]: [string, AvEntry[]]) => {
+          (Object.entries(json.data) as [string, AvEntry[]][]).forEach(([room, entries]) => {
             if (!merged[room]) {
               merged[room] = []
             }
