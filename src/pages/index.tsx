@@ -3,15 +3,16 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 import { Cinzel, Noto_Serif_JP } from 'next/font/google';
 import { Search, Calendar, Users, Castle, Star, ChevronDown } from 'lucide-react';
 
 const cinzel = Cinzel({ subsets: ['latin'], weight: ['400', '700'] });
 const notoSerif = Noto_Serif_JP({ subsets: ['latin'], weight: ['400', '700'] });
 
-export default function Home() {
   const [hotel, setHotel] = useState('');
   const [date, setDate] = useState('');
+  const router = useRouter();
 
   return (
     <main className={`min-h-screen bg-[#0C1445] text-[#F0F4F8] ${notoSerif.className} relative overflow-hidden`}>
@@ -32,7 +33,7 @@ export default function Home() {
           </h1>
         </div>
         <nav className="hidden md:flex gap-6 text-sm tracking-widest opacity-80">
-          <a href="#" className="hover:text-[#C5A059] transition-colors">空室検索</a>
+          <a href="/calendar" className="hover:text-[#C5A059] transition-colors">空室検索</a>
           <a href="#" className="hover:text-[#C5A059] transition-colors">ホテル一覧</a>
           <a href="#" className="hover:text-[#C5A059] transition-colors">ログイン</a>
         </nav>
@@ -103,7 +104,10 @@ export default function Home() {
             </div>
             {/* 検索ボタン */}
             <div className="md:col-span-3 flex items-end">
-              <button className="w-full bg-[#A51C30] hover:bg-[#8a1626] text-white font-bold py-3 px-6 rounded-lg shadow-[0_4px_14px_rgba(165,28,48,0.4)] hover:shadow-[0_6px_20px_rgba(165,28,48,0.6)] transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2">
+              <button
+                className="w-full bg-[#A51C30] hover:bg-[#8a1626] text-white font-bold py-3 px-6 rounded-lg shadow-[0_4px_14px_rgba(165,28,48,0.4)] hover:shadow-[0_6px_20px_rgba(165,28,48,0.6)] transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2"
+                onClick={() => router.push('/calendar')}
+              >
                 <Search className="w-5 h-5" />
                 <span>空室を探す</span>
               </button>
