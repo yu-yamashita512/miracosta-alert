@@ -1,15 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
-import type { NextPage } from 'next'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import ListPlugin from '@fullcalendar/list'
-const Tippy = dynamic(() => import('@tippyjs/react'), { ssr: false })
-import 'tippy.js/dist/tippy.css'
-
-const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false })
-
 type AvEntry = { date: string; is_available: boolean; price: number | null; source?: string }
+
+import { Cinzel, Noto_Serif_JP } from 'next/font/google';
+import { Calendar as CalendarIcon, Filter, RefreshCw } from 'lucide-react';
+const cinzel = Cinzel({ subsets: ['latin'], weight: ['400', '700'] });
+const notoSerif = Noto_Serif_JP({ subsets: ['latin'], weight: ['400', '700'] });
+
+import React, { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+import type { NextPage } from 'next';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import ListPlugin from '@fullcalendar/list';
+const Tippy = dynamic(() => import('@tippyjs/react'), { ssr: false });
+import 'tippy.js/dist/tippy.css';
+const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
 const CalendarPage: NextPage = () => {
   const [data, setData] = useState<Record<string, AvEntry[]>>({})
@@ -136,76 +140,87 @@ const CalendarPage: NextPage = () => {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 12, padding: 12, flexDirection: 'row' }}>
-      <aside style={{ width: showSidebar ? 300 : 0, transition: 'width 180ms', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>部屋フィルタ</h3>
-          <button onClick={() => setShowSidebar(false)} style={{ background: 'transparent', border: 'none' }}>✕</button>
-        </div>
-        <div style={{ maxHeight: '72vh', overflow: 'auto', marginTop: 8 }}>
-          {Object.keys(data).length === 0 && <div>読み込み中...</div>}
-          {Object.keys(data)
-            .filter((room) => {
-              // モックデータのみの部屋タイプを除外
-              const arr = data[room] || []
-              const isMockOnly = arr.every((it) => !it.source || it.source === 'mock')
-              return !isMockOnly
-            })
-            .map((room) => {
+    <main className={`min-h-screen bg-[#0C1445] text-[#F0F4F8] ${notoSerif.className} relative overflow-hidden`}>
+      {/* 背景の魔法エフェクト（星のきらめき） */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-10 left-1/4 w-1 h-1 bg-[#C5A059] rounded-full animate-pulse shadow-[0_0_10px_#C5A059]"></div>
+        <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-white rounded-full animate-pulse delay-75"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-[#C5A059] rounded-full animate-pulse delay-150 shadow-[0_0_8px_#C5A059]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0C1445] via-[#111a52] to-[#0C1445] opacity-80"></div>
+      </div>
+
+      <div className="relative z-10 flex gap-8 px-4 py-10 md:py-16 max-w-7xl mx-auto">
+        {/* サイドバー */}
+        <aside className={`transition-all duration-200 bg-[#111a52]/80 border border-[#C5A059]/30 rounded-2xl shadow-lg p-6 w-72 min-w-[220px] max-w-xs ${showSidebar ? 'opacity-100' : 'opacity-0 pointer-events-none'} flex flex-col`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`${cinzel.className} text-[#C5A059] text-lg font-bold tracking-wider`}>部屋フィルタ</h3>
+            <button onClick={() => setShowSidebar(false)} className="text-[#C5A059] hover:text-white transition-colors text-xl font-bold">✕</button>
+          </div>
+          <div className="max-h-[72vh] overflow-auto mt-2 custom-scrollbar">
+            {Object.keys(data).length === 0 && <div className="text-white/60">読み込み中...</div>}
+            {Object.keys(data).map((room) => {
               const arr = data[room] || []
               return (
-                <label key={room} style={{ display: 'block', marginBottom: 8 }}>
+                <label key={room} className="flex items-center gap-2 mb-3 cursor-pointer text-white/90 hover:text-[#C5A059] transition-colors">
                   <input
                     type="checkbox"
                     checked={!!selectedRooms[room]}
                     onChange={(e) => setSelectedRooms((s) => ({ ...s, [room]: e.target.checked }))}
+                    className="accent-[#C5A059] w-4 h-4 rounded"
                   />
-                  {' '}
-                  <span style={{ fontSize: 14 }}>{room}</span>
+                  <span className="text-sm font-medium">{room}</span>
                 </label>
               )
             })}
-        </div>
-      </aside>
-
-      <main style={{ flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: '0 0 12px 0' }}>空室カレンダー</h2>
-          <div>
-            <button
-              onClick={() => {
-                // データを再読み込み
-                loadData(initialStart, initialEnd)
-                // カレンダーの表示範囲も再取得
-                if (dateRange) {
-                  loadData(dateRange.start, dateRange.end)
-                }
-              }}
-              style={{ marginRight: 8, padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            >
-              データを再読み込み
-            </button>
-            <button onClick={() => setShowSidebar((s) => !s)} style={{ marginRight: 8 }}>フィルタ</button>
           </div>
-        </div>
+        </aside>
 
-        <div style={{ background: '#fff', borderRadius: 8, padding: 8 }}>
-          <FullCalendar
-            plugins={[dayGridPlugin, interactionPlugin, ListPlugin]}
-            initialView="dayGridMonth"
-            headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek' }}
-            events={filteredEvents}
-            eventContent={eventContent}
-            eventDisplay="block"
-            height="auto"
-            dayMaxEventRows={3}
-            expandRows={true}
-            datesSet={handleDatesSet}
-            validRange={validRange}
-          />
-        </div>
-      </main>
-    </div>
+        {/* メインカレンダー */}
+        <main className="flex-1">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`${cinzel.className} text-2xl md:text-3xl font-bold text-[#C5A059] tracking-wider mb-0`}>空室カレンダー</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  loadData(initialStart, initialEnd)
+                  if (dateRange) {
+                    loadData(dateRange.start, dateRange.end)
+                  }
+                }}
+                className="flex items-center gap-1 bg-[#A51C30] hover:bg-[#8a1626] text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>再読み込み</span>
+              </button>
+              <button
+                onClick={() => setShowSidebar((s) => !s)}
+                className="flex items-center gap-1 bg-[#C5A059]/90 hover:bg-[#C5A059] text-[#0C1445] font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200"
+              >
+                <Filter className="w-4 h-4" />
+                <span>フィルタ</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white/10 border border-[#C5A059]/30 rounded-2xl shadow-xl p-4 md:p-8">
+            <FullCalendar
+              plugins={[dayGridPlugin, interactionPlugin, ListPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek' }}
+              events={filteredEvents}
+              eventContent={eventContent}
+              eventDisplay="block"
+              height="auto"
+              dayMaxEventRows={3}
+              expandRows={true}
+              datesSet={handleDatesSet}
+              validRange={validRange}
+              dayMaxEvents={true}
+            />
+          </div>
+        </main>
+      </div>
+    </main>
   )
 }
 
