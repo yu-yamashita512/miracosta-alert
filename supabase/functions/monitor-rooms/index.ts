@@ -111,39 +111,64 @@ serve(async (req) => {
  * 実際の実装では、公式サイトのAPIまたはスクレイピングを使用
  */
 async function fetchRoomAvailability(): Promise<RoomAvailability[]> {
-  // TODO: 実際のミラコスタ公式サイトからデータ取得
-  // 現在はモックデータを返す
-  
+  // 楽天APIからミラコスタの空室情報を取得
+  const appId = Deno.env.get('RAKUTEN_APP_ID')
+  if (!appId) throw new Error('RAKUTEN_APP_ID not set')
+
+  // ミラコスタの楽天ホテルNo（例: 74733）
+  const hotelNo = '74733'
   const today = new Date()
-  const roomTypes = [
-    'スーペリアルーム ハーバービュー',
-    'バルコニールーム ハーバーグランドビュー',
-    'ハーバールーム',
-    'ポルト・パラディーゾ・サイド スーペリアルーム',
-    'テラスルーム ハーバーグランドビュー',
-  ]
+  const results: RoomAvailability[] = []
 
-  const mockData: RoomAvailability[] = []
-
-  // 今後30日間のデータを生成
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(today)
-    date.setDate(date.getDate() + i)
-    const dateStr = date.toISOString().split('T')[0]
-
-    for (const roomType of roomTypes) {
-      // ランダムに空室を設定（実際のデータ取得に置き換える）
-      const isAvailable = Math.random() > 0.8
-      mockData.push({
-        date: dateStr,
-        room_type: roomType,
-        is_available: isAvailable,
-        price: isAvailable ? Math.floor(Math.random() * 30000) + 40000 : null,
-      })
+  // 直近7日分だけ取得（API制限・負荷配慮）
+  for (let i = 0; i < 7; i++) {
+    const checkin = new Date(today)
+    checkin.setDate(checkin.getDate() + i)
+    const checkinDate = checkin.toISOString().split('T')[0]
+    const params = new URLSearchParams({
+      applicationId: appId,
+      hotelNo,
+      checkinDate,
+      stayCount: '1',
+    })
+    const endpoint = `https://app.rakuten.co.jp/services/api/Travel/VacantHotelSearch/20170426?${params.toString()}`
+    const resp = await fetch(endpoint)
+    if (!resp.ok) {
+      console.error('Rakuten API error', resp.status)
+      continue
+    }
+    const data = await resp.json()
+    // データ正規化
+    const hotels = Array.isArray(data.hotels) ? data.hotels : []
+    for (const h of hotels) {
+      const hotelArray = h.hotel || h[0] || h
+      const basic = Array.isArray(hotelArray)
+        ? hotelArray.find((x: any) => x.hotelBasicInfo)?.hotelBasicInfo || {}
+        : hotelArray.hotelBasicInfo || {}
+      const roomInfoObj = Array.isArray(hotelArray)
+        ? hotelArray.find((x: any) => x.roomInfo)
+        : hotelArray.roomInfo ? { roomInfo: hotelArray.roomInfo } : null
+      const roomInfo = roomInfoObj?.roomInfo || []
+      for (let j = 0; j < roomInfo.length; j++) {
+        const r = roomInfo[j]
+        const roomBasic = r.roomBasicInfo || r.roomBasic || null
+        let daily = r.dailyCharge || r.daily || null
+        if (!daily && roomInfo[j + 1]) {
+          daily = roomInfo[j + 1].dailyCharge || roomInfo[j + 1].daily || null
+        }
+        if (roomBasic) {
+          const rawPrice = daily && (daily.rakutenCharge || daily.total || null)
+          results.push({
+            date: daily?.stayDate || checkinDate,
+            room_type: `${basic.hotelName ? basic.hotelName + ' - ' : ''}${roomBasic.roomName || roomBasic.planName || 'プラン'}`,
+            is_available: true,
+            price: rawPrice != null ? Number(rawPrice) : null,
+          })
+        }
+      }
     }
   }
-
-  return mockData
+  return results
 }
 
 /**
