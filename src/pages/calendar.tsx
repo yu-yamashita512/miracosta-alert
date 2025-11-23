@@ -75,7 +75,7 @@ const CalendarPage: NextPage = () => {
 
         // 部屋の選択状態を更新（モックデータはデフォルトで非表示）
         setSelectedRooms((prev) => {
-          const map = { ...prev }
+          const map: Record<string, boolean> = { ...prev }
           (Object.entries(json.data) as [string, AvEntry[]][]).forEach(([room, arr]) => {
             const hasReal = arr.some((e) => e.source && e.source !== 'mock')
             const isMockOnly = arr.every((e) => !e.source || e.source === 'mock')
