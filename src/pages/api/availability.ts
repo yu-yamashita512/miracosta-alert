@@ -30,9 +30,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'DB query failed', details: error.message })
     }
 
-    // Normalize to an object keyed by room_type with date entries
-    const grouped: Record<string, Array<any>> = {}
-    for (const row of data || []) {
+    // 型定義
+    type Row = { room_type: string; date: string; is_available: boolean; price: number; source: string }
+    const grouped: Record<string, Array<Omit<Row, 'room_type'>>> = {}
+    for (const row of (data || []) as Row[]) {
       const rt = row.room_type || 'unknown'
       if (!grouped[rt]) grouped[rt] = []
       grouped[rt].push({ date: row.date, is_available: row.is_available, price: row.price, source: row.source })
