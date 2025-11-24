@@ -142,10 +142,15 @@ const CalendarPage: NextPage = () => {
     )
   }
 
-  // カレンダー描画後に空行を非表示にする副作用
+  // MutationObserverでカレンダーのtr追加・変更を監視し、空白週を即時削除
   useEffect(() => {
-    // 0.5秒後にDOM操作（描画タイミングのズレ対策）
-    const timer = setTimeout(() => {
+    // 監視範囲を.fc-daygrid（親）に拡大
+    const gridEl = document.querySelector('.fc-daygrid');
+    if (!gridEl) return;
+    // tr削除処理を複数回繰り返す
+    let rafId: number | null = null;
+    let count = 0;
+    const removeEmptyRows = () => {
       const calendarEl = document.querySelector('.fc-daygrid-body');
       if (!calendarEl) return;
       const weekRows = calendarEl.querySelectorAll('.fc-daygrid-week');
@@ -153,14 +158,27 @@ const CalendarPage: NextPage = () => {
         const cells = Array.from(row.querySelectorAll('.fc-daygrid-day'));
         const allOther = cells.every(cell => cell.classList.contains('fc-day-other'));
         if (allOther) {
-          // tr自体をDOMから削除
           if (row.parentNode) {
             row.parentNode.removeChild(row);
           }
         }
       });
-    }, 500);
-    return () => clearTimeout(timer);
+      // 5回まで繰り返し実行
+      if (++count < 5) {
+        rafId = window.requestAnimationFrame(removeEmptyRows);
+      }
+    };
+    removeEmptyRows();
+    // 監視開始
+    const observer = new MutationObserver(() => {
+      count = 0;
+      removeEmptyRows();
+    });
+    observer.observe(gridEl, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [dateRange]);
 
   return (
