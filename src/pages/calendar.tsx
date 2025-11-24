@@ -150,25 +150,13 @@ const CalendarPage: NextPage = () => {
       if (!calendarEl) return;
       const weekRows = calendarEl.querySelectorAll('.fc-daygrid-week');
       weekRows.forEach((row) => {
-        // その週の全セルがfc-day-otherかつ実際に非表示（offsetParent=null or visibility:hidden or display:none）なら非表示
         const cells = Array.from(row.querySelectorAll('.fc-daygrid-day'));
-        const allHidden = cells.every(cell => {
-          const el = cell as HTMLElement;
-          return (
-            cell.classList.contains('fc-day-other') &&
-            (el.offsetParent === null || el.style.visibility === 'hidden' || el.style.display === 'none')
-          );
-        });
-        if (allHidden) {
-          const rowEl = row as HTMLElement;
-          rowEl.style.display = 'none';
-          rowEl.style.visibility = 'collapse';
-          rowEl.style.height = '0px';
-        } else {
-          const rowEl = row as HTMLElement;
-          rowEl.style.display = '';
-          rowEl.style.visibility = '';
-          rowEl.style.height = '';
+        const allOther = cells.every(cell => cell.classList.contains('fc-day-other'));
+        if (allOther) {
+          // tr自体をDOMから削除
+          if (row.parentNode) {
+            row.parentNode.removeChild(row);
+          }
         }
       });
     }, 500);
