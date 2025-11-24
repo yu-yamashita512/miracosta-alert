@@ -1,3 +1,5 @@
+// カレンダー描画後に、全セルが非表示の週（tr）を非表示にする
+import { useRef } from 'react';
 type AvEntry = { date: string; is_available: boolean; price: number | null; source?: string }
 
 import { Cinzel, Noto_Serif_JP } from 'next/font/google';
@@ -16,6 +18,7 @@ import 'tippy.js/dist/tippy.css';
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
 const CalendarPage: NextPage = () => {
+  const calendarRef = useRef<any>(null)
   const [data, setData] = useState<Record<string, AvEntry[]>>({})
   const [selectedRooms, setSelectedRooms] = useState<Record<string, boolean>>({})
   const [showSidebar, setShowSidebar] = useState(true)
@@ -138,6 +141,27 @@ const CalendarPage: NextPage = () => {
       </Tippy>
     )
   }
+
+  // カレンダー描画後に空行を非表示にする副作用
+  useEffect(() => {
+    // 0.5秒後にDOM操作（描画タイミングのズレ対策）
+    const timer = setTimeout(() => {
+      const calendarEl = document.querySelector('.fc-daygrid-body');
+      if (!calendarEl) return;
+      const weekRows = calendarEl.querySelectorAll('.fc-daygrid-week');
+      weekRows.forEach((row) => {
+        // その週の全セルがfc-day-otherかつfc-day-disabled（非表示セル）なら非表示
+        const cells = Array.from(row.querySelectorAll('.fc-daygrid-day'));
+        const allHidden = cells.every(cell => cell.classList.contains('fc-day-other') && (cell as HTMLElement).style.visibility === 'hidden');
+        if (allHidden) {
+          (row as HTMLElement).style.display = 'none';
+        } else {
+          (row as HTMLElement).style.display = '';
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [dateRange]);
 
   return (
     <main className={`min-h-screen bg-[#0C1445] text-[#F0F4F8] ${notoSerif.className} relative overflow-hidden`}>
