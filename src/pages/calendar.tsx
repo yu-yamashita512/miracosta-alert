@@ -216,6 +216,7 @@ const CalendarPage: NextPage = () => {
               datesSet={handleDatesSet}
               validRange={validRange}
               dayMaxEvents={true}
+              showNonCurrentDates={false}
             />
           </div>
         </main>
