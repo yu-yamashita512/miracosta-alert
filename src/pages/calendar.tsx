@@ -1,3 +1,9 @@
+// 空白週trを非表示にするグローバルCSSを追加
+if (typeof window !== 'undefined') {
+  const style = document.createElement('style');
+  style.innerHTML = '.only-other-row { display: none !important; }';
+  document.head.appendChild(style);
+}
 // カレンダー描画後に、全セルが非表示の週（tr）を非表示にする
 import { useRef } from 'react';
 type AvEntry = { date: string; is_available: boolean; price: number | null; source?: string }
@@ -8,6 +14,26 @@ const cinzel = Cinzel({ subsets: ['latin'], weight: ['400', '700'] });
 const notoSerif = Noto_Serif_JP({ subsets: ['latin'], weight: ['400', '700'] });
 
 import React, { useEffect, useMemo, useState } from 'react';
+// 楽天予約URL生成関数
+function generateRakutenReserveUrl(roomType: string, date: string) {
+  // ミラコスタの楽天ホテルNo固定
+  const hotelNo = '74733';
+  // 日付をパース（チェックイン日）
+  const checkin = new Date(date);
+  const yyyy = checkin.getFullYear();
+  const mm = String(checkin.getMonth() + 1).padStart(2, '0');
+  const dd = String(checkin.getDate()).padStart(2, '0');
+  
+  // チェックアウト日（翌日）
+  const checkout = new Date(checkin);
+  checkout.setDate(checkout.getDate() + 1);
+  const cyyyy = checkout.getFullYear();
+  const cmm = String(checkout.getMonth() + 1).padStart(2, '0');
+  const cdd = String(checkout.getDate()).padStart(2, '0');
+  
+  // 楽天トラベルの検索URL形式（日付指定あり）
+  return `https://hotel.travel.rakuten.co.jp/hotelinfo/plan/${hotelNo}?f_no=${hotelNo}&f_flg=PLAN&f_nen1=${yyyy}&f_tuki1=${mm}&f_hi1=${dd}&f_nen2=${cyyyy}&f_tuki2=${cmm}&f_hi2=${cdd}&f_otona_su=2&f_s1=0&f_s2=0&f_y1=0&f_y2=0&f_y3=0&f_y4=0&f_heya_su=1`;
+}
 import dynamic from 'next/dynamic';
 import type { NextPage } from 'next';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -111,12 +137,14 @@ const CalendarPage: NextPage = () => {
     Object.entries(data).forEach(([room, arr]) => {
       arr.forEach((e) => {
         if (!e.is_available) return
+        // 楽天予約URLを生成
+        const reserveUrl = generateRakutenReserveUrl(room, e.date)
         ev.push({
           id: `${room}-${e.date}`,
           title: e.price ? `空室 ¥${e.price.toLocaleString()}` : '空室',
           start: e.date,
           allDay: true,
-          extendedProps: { room, price: e.price },
+          extendedProps: { room, price: e.price, reserveUrl },
           backgroundColor: `hsl(${hashString(room) % 360} 60% 60%)`,
           borderColor: `hsl(${hashString(room) % 360} 60% 40%)`,
         })
@@ -124,6 +152,13 @@ const CalendarPage: NextPage = () => {
     })
     return ev
   }, [data])
+  // イベントクリックで楽天予約ページに遷移
+  const handleEventClick = (arg: any) => {
+    const url = arg.event.extendedProps.reserveUrl
+    if (url) {
+      window.open(url, '_blank', 'noopener')
+    }
+  }
 
   const filteredEvents = useMemo(() => events.filter((ev) => selectedRooms[ev.extendedProps.room]), [events, selectedRooms])
 
@@ -147,32 +182,35 @@ const CalendarPage: NextPage = () => {
     // 監視範囲を.fc-daygrid（親）に拡大
     const gridEl = document.querySelector('.fc-daygrid');
     if (!gridEl) return;
-    // tr削除処理を複数回繰り返す
+    // trにクラスを付与する処理を複数回繰り返す
     let rafId: number | null = null;
     let count = 0;
-    const removeEmptyRows = () => {
+    const markEmptyRows = () => {
       const calendarEl = document.querySelector('.fc-daygrid-body');
       if (!calendarEl) return;
-      const weekRows = calendarEl.querySelectorAll('.fc-daygrid-week');
+      const weekRows = calendarEl.querySelectorAll('tr');
       weekRows.forEach((row) => {
+        // 週tr内のtdセルを取得
         const cells = Array.from(row.querySelectorAll('.fc-daygrid-day'));
-        const allOther = cells.every(cell => cell.classList.contains('fc-day-other'));
-        if (allOther) {
-          if (row.parentNode) {
-            row.parentNode.removeChild(row);
-          }
+        if (cells.length === 0) return; // カレンダー週以外のtrはスキップ
+        // fc-day-disabled だけの行を判定
+        const allDisabled = cells.every(cell => cell.classList.contains('fc-day-disabled'));
+        if (allDisabled) {
+          row.classList.add('only-other-row');
+        } else {
+          row.classList.remove('only-other-row');
         }
       });
       // 5回まで繰り返し実行
       if (++count < 5) {
-        rafId = window.requestAnimationFrame(removeEmptyRows);
+        rafId = window.requestAnimationFrame(markEmptyRows);
       }
     };
-    removeEmptyRows();
+    markEmptyRows();
     // 監視開始
     const observer = new MutationObserver(() => {
       count = 0;
-      removeEmptyRows();
+      markEmptyRows();
     });
     observer.observe(gridEl, { childList: true, subtree: true });
     return () => {
@@ -259,6 +297,7 @@ const CalendarPage: NextPage = () => {
               validRange={validRange}
               dayMaxEvents={true}
               showNonCurrentDates={false}
+              eventClick={handleEventClick}
             />
           </div>
         </main>
