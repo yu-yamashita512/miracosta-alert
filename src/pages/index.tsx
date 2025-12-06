@@ -79,7 +79,7 @@ const Home: NextPage = () => {
       const json = await res.json();
       if (json && json.success && json.data) {
         setData((prev) => {
-          const merged = { ...prev } as Record<string, AvEntry[]>;
+          const merged: Record<string, AvEntry[]> = { ...prev }; // 型を明示的に指定
           (Object.entries(json.data) as [string, AvEntry[]][]).forEach(([room, entries]) => {
             if (!merged[room]) {
               merged[room] = [];
@@ -120,11 +120,9 @@ const Home: NextPage = () => {
     }
   }, [allRoomTypes, selectedRooms]);
 
-  // フィルタされた部屋タイプ
+  // 修正: filteredRoomTypes では部屋タイプ名を変更せず、表示時にのみプレフィックスを削除
   const filteredRoomTypes = useMemo(() => {
-    return allRoomTypes.filter((r) => selectedRooms[r]).map((room) =>
-      room.replace(/^東京ディズニーシー・ホテルミラコスタ（Ｒ） - /, '')
-    );
+    return allRoomTypes.filter((r) => selectedRooms[r]);
   }, [allRoomTypes, selectedRooms]);
 
   // FullCalendarイベント生成
