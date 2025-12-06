@@ -1,3 +1,8 @@
 {
-  "cron": "*/10 * * * *"
+  "cron": "*/10 * * * *",
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "importMap": "import_map.json"
 }

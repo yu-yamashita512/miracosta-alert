@@ -194,19 +194,30 @@ async function fetchRoomAvailability(startOffset = 0, days = 30): Promise<RoomAv
     // リクエストURLを出力
     console.log(`Rakuten API request URL: ${endpoint}`)
 
-    const resp = await fetch(endpoint)
-    const text = await resp.text()
-    if (!resp.ok) {
+    let resp = await fetch(endpoint)
+    let text = await resp.text()
+    
+    // 429エラー時のリトライ処理
+    if (!resp.ok && resp.status === 429) {
+      console.log(`Rate limit hit at ${checkinDate}, waiting 10 seconds and retrying...`)
+      await new Promise(res => setTimeout(res, 10000))
+      
+      // 再試行
+      resp = await fetch(endpoint)
+      text = await resp.text()
+      
+      if (!resp.ok) {
+        console.error('Retry failed after 429:', resp.status, checkinDate)
+        console.error('Retry response body:', text)
+        continue
+      }
+      console.log('Retry succeeded after 429')
+    } else if (!resp.ok) {
       console.error('Rakuten API error', resp.status, checkinDate)
       console.error('Rakuten API response body:', text)
-      // 429エラーの場合は10秒待機（レートリミット対策）
-      if (resp.status === 429) {
-        console.log(`Rate limit hit at ${checkinDate}, waiting 10 seconds...`)
-        await new Promise(res => setTimeout(res, 10000))
-      }
-      // エラー時は次へ（is_available: falseで更新しない）
       continue
     }
+    
     // レスポンスボディも出力
     console.log('Rakuten API response body:', text)
     const data = JSON.parse(text)
@@ -215,12 +226,66 @@ async function fetchRoomAvailability(startOffset = 0, days = 30): Promise<RoomAv
     if (data.error) {
       console.error(`Rakuten API error: ${data.error} - ${data.error_description}`, checkinDate)
       
+      // too_many_requestsの場合は再試行
       if (data.error === 'too_many_requests') {
-        console.log(`Rate limit hit at ${checkinDate}, waiting 10 seconds...`)
+        console.log(`API rate limit in response at ${checkinDate}, waiting 10 seconds and retrying...`)
         await new Promise(res => setTimeout(res, 10000))
+        
+        // 再試行
+        const retryResp = await fetch(endpoint)
+        const retryText = await retryResp.text()
+        
+        if (!retryResp.ok) {
+          console.error('Retry failed after too_many_requests:', retryResp.status, checkinDate)
+          console.error('Retry response body:', retryText)
+          continue
+        }
+        
+        const retryData = JSON.parse(retryText)
+        if (retryData.error) {
+          console.error(`Retry still has error: ${retryData.error} - ${retryData.error_description}`, checkinDate)
+          continue
+        }
+        
+        console.log('Retry succeeded after too_many_requests')
+        // 再試行成功時は retryData を使用
+        const retryHotels = Array.isArray(retryData.hotels) ? retryData.hotels : []
+        for (const h of retryHotels) {
+          const hotelArray = h.hotel || h[0] || h
+          const basic = Array.isArray(hotelArray)
+            ? hotelArray.find((x: any) => x.hotelBasicInfo)?.hotelBasicInfo || {}
+            : hotelArray.hotelBasicInfo || {}
+          const roomInfoObj = Array.isArray(hotelArray)
+            ? hotelArray.find((x: any) => x.roomInfo)
+            : hotelArray.roomInfo ? { roomInfo: hotelArray.roomInfo } : null
+          const roomInfo = roomInfoObj?.roomInfo || []
+          for (let j = 0; j < roomInfo.length; j++) {
+            const r = roomInfo[j]
+            const roomBasic = r.roomBasicInfo || r.roomBasic || null
+            let daily = r.dailyCharge || r.daily || null
+            if (!daily && roomInfo[j + 1]) {
+              daily = roomInfo[j + 1].dailyCharge || roomInfo[j + 1].daily || null
+            }
+            if (roomBasic) {
+              const rawPrice = daily && (daily.rakutenCharge || daily.total || null)
+              const stayDate = daily?.stayDate || checkinDate
+              if (stayDate === checkoutDate.toISOString().split('T')[0]) {
+                continue
+              }
+              results.push({
+                date: stayDate,
+                room_type: roomBasic.roomClass || roomBasic.roomName || 'Unknown',
+                is_available: true,
+                price: rawPrice ? parseInt(rawPrice, 10) : null,
+              })
+            }
+          }
+        }
+        // 再試行成功したので次の日付へ
+        continue
       }
       
-      // not_found や too_many_requests の場合はスキップ
+      // not_found など他のエラーの場合はスキップ
       continue
     }
     
