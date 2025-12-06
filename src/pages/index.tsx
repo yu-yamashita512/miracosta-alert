@@ -179,6 +179,13 @@ const Home: NextPage = () => {
     setSelectedRooms((prev) => ({ ...prev, [room]: !prev[room] }));
   };
 
+  // Update event titles to remove "東京ディズニーシー・ホテルミラコスタ（Ｒ） - " prefix
+  const updatedEvents = events.map(event => {
+    const updatedTitle = event.title.replace(/^東京ディズニーシー・ホテルミラコスタ（Ｒ） - /, '');
+    const roomTypeClass = `room-type-${event.extendedProps.roomType}`;
+    return { ...event, title: updatedTitle, className: roomTypeClass };
+  });
+
   return (
     <main className={`min-h-screen bg-[#0C1445] text-[#F0F4F8] ${notoSerif.className} relative overflow-hidden`}>
       {/* 背景の魔法エフェクト（星のきらめき） */}
@@ -291,7 +298,7 @@ const Home: NextPage = () => {
                   right: ''
                 }}
                 locale="ja"
-                events={events}
+                events={updatedEvents} // Use updated events here
                 eventClick={handleEventClick}
                 datesSet={handleDatesSet}
                 validRange={validRange}
@@ -318,7 +325,25 @@ const Home: NextPage = () => {
 
       <style jsx global>{`
         .fc {
-          color: #F0F4F8;
+          color: #000; /* Set text color to black */
+          background-color: white; /* Ensure calendar background is white */
+        }
+        .fc .fc-daygrid-day-number {
+          color: #000; /* Set day numbers to black */
+        }
+        .fc-event {
+          border: 1px solid transparent;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .fc-event.room-type-1 {
+          background-color: #FFD700; /* Example color for room type 1 */
+        }
+        .fc-event.room-type-2 {
+          background-color: #FF4500; /* Example color for room type 2 */
+        }
+        .fc-event.room-type-3 {
+          background-color: #32CD32; /* Example color for room type 3 */
         }
         .fc .fc-button {
           background-color: rgba(197, 160, 89, 0.2);
