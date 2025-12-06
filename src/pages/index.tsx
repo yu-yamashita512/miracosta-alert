@@ -122,7 +122,9 @@ const Home: NextPage = () => {
 
   // フィルタされた部屋タイプ
   const filteredRoomTypes = useMemo(() => {
-    return allRoomTypes.filter((r) => selectedRooms[r]);
+    return allRoomTypes.filter((r) => selectedRooms[r]).map((room) =>
+      room.replace(/^東京ディズニーシー・ホテルミラコスタ（Ｒ） - /, '')
+    );
   }, [allRoomTypes, selectedRooms]);
 
   // FullCalendarイベント生成
@@ -265,7 +267,7 @@ const Home: NextPage = () => {
                       className="w-4 h-4 accent-[#C5A059]"
                     />
                     <span className="text-sm text-white/80 group-hover:text-[#C5A059] transition-colors">
-                      {room}
+                      {room.replace(/^東京ディズニーシー・ホテルミラコスタ（Ｒ） - /, '')}
                     </span>
                   </label>
                 ))}
@@ -288,7 +290,7 @@ const Home: NextPage = () => {
               </button>
             </div>
             
-            <div className="calendar-container bg-white/10 rounded-lg p-4">
+            <div className="calendar-container bg-white rounded-lg p-4">
               <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
@@ -369,6 +371,10 @@ const Home: NextPage = () => {
         }
         .fc .fc-daygrid-day.fc-day-today {
           background-color: rgba(197, 160, 89, 0.1);
+        }
+        .fc-toolbar-title {
+          text-align: center; /* Center align the calendar title */
+          width: 100%; /* Ensure it spans the full width */
         }
       `}</style>
     </main>
