@@ -1,0 +1,3 @@
+name = "monitor-rooms-0"
+schedule = "*/10 * * * *"
+endpoint = "monitor-rooms?startOffset=0&days=30"
