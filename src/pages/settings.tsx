@@ -193,7 +193,7 @@ export default function Settings() {
                     }
                     className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <span className="ml-2">LINE通知（プレミアムプラン）</span>
+                  <span className="ml-2">LINE通知</span>
                 </label>
               </div>
             </div>
@@ -226,7 +226,7 @@ export default function Settings() {
             {/* 部屋タイプ指定 */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                通知する部屋タイプ（プレミアムプラン）
+                通知する部屋タイプ
               </h3>
               <p className="text-sm text-gray-600 mb-3">
                 未選択の場合、すべての部屋タイプで通知されます

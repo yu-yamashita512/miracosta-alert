@@ -13,7 +13,6 @@ import dynamic from 'next/dynamic';
 import type { NextPage } from 'next';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import ListPlugin from '@fullcalendar/list';
 import 'tippy.js/dist/tippy.css';
 
 const cinzel = Cinzel({ subsets: ['latin'], weight: ['400', '700'] });
@@ -284,12 +283,12 @@ const Home: NextPage = () => {
             
             <div className="calendar-container bg-white/10 rounded-lg p-4">
               <FullCalendar
-                plugins={[dayGridPlugin, interactionPlugin, ListPlugin]}
+                plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
                 headerToolbar={{
                   left: 'prev,next today',
                   center: 'title',
-                  right: 'dayGridMonth,listWeek'
+                  right: ''
                 }}
                 locale="ja"
                 events={events}
