@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 interface User {
   email: string
-  subscription_plan: 'free' | 'premium'
+  subscription_plan: string | null
 }
 
 interface NotificationHistory {
