@@ -199,10 +199,10 @@ async function fetchRoomAvailability(startOffset = 0, days = 30): Promise<RoomAv
     if (!resp.ok) {
       console.error('Rakuten API error', resp.status, checkinDate)
       console.error('Rakuten API response body:', text)
-      // 429エラーの場合は5秒待機（レートリミット対策）
+      // 429エラーの場合は10秒待機（レートリミット対策）
       if (resp.status === 429) {
-        console.log(`Rate limit hit at ${checkinDate}, waiting 5 seconds...`)
-        await new Promise(res => setTimeout(res, 5000))
+        console.log(`Rate limit hit at ${checkinDate}, waiting 10 seconds...`)
+        await new Promise(res => setTimeout(res, 10000))
       }
       // エラー時は次へ（is_available: falseで更新しない）
       continue
@@ -210,6 +210,20 @@ async function fetchRoomAvailability(startOffset = 0, days = 30): Promise<RoomAv
     // レスポンスボディも出力
     console.log('Rakuten API response body:', text)
     const data = JSON.parse(text)
+    
+    // 楽天API独自のエラーチェック（HTTPステータスは200だがエラーレスポンスの場合）
+    if (data.error) {
+      console.error(`Rakuten API error: ${data.error} - ${data.error_description}`, checkinDate)
+      
+      if (data.error === 'too_many_requests') {
+        console.log(`Rate limit hit at ${checkinDate}, waiting 10 seconds...`)
+        await new Promise(res => setTimeout(res, 10000))
+      }
+      
+      // not_found や too_many_requests の場合はスキップ
+      continue
+    }
+    
     // データ正規化
     const hotels = Array.isArray(data.hotels) ? data.hotels : []
     for (const h of hotels) {
