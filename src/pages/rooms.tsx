@@ -12,7 +12,9 @@ interface Room {
   room_type: string
   is_available: boolean
   price: number | null
-  last_checked_at: string
+  last_checked_at: string | null
+  created_at?: string | null
+  source?: string | null
 }
 
 export default function Rooms() {
