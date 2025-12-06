@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 interface User {
   email: string
-  subscription_plan: 'free' | 'premium'
+  subscription_plan: string | null
 }
 
 interface NotificationHistory {
@@ -104,8 +104,14 @@ export default function Dashboard() {
                 </h1>
               </Link>
               <div className="space-x-4">
+                <Link href="/calendar" className="text-gray-700 hover:text-purple-600">
+                  カレンダー
+                </Link>
                 <Link href="/rooms" className="text-gray-700 hover:text-purple-600">
                   空室一覧
+                </Link>
+                <Link href="/notifications" className="text-gray-700 hover:text-purple-600">
+                  通知設定
                 </Link>
                 <Link href="/settings" className="text-gray-700 hover:text-purple-600">
                   設定

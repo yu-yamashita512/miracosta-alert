@@ -1,0 +1,5 @@
+{
+  "name": "monitor-rooms-120",
+  "schedule": "*/10 * * * *",
+  "endpoint": "monitor-rooms?startOffset=120&days=30"
+}

@@ -72,11 +72,32 @@
         - テスト方法（curlでのAPI叩き、環境変数例、メール送信確認手順）を整理。
         - config.tomlやSupabase/Dockerのトラブルシュートも記録。
 
+* 2025-12-03 進捗（楽天API統合・カレンダーUI改善）:
+        - **Supabase Edge Function による楽天API空室取得自動化**:
+                - `supabase/functions/monitor-rooms/index.ts` を実装し、楽天Travel/VacantHotelSearch APIから180日分の空室データを自動取得・DB保存。
+                - レートリミット対策（リクエスト間隔2秒、429エラー時5秒待機、エラー時false反映停止）を実装。
+                - 分割取得方式（30日単位で6回に分割、startOffset/daysパラメータ）で180日制限を回避。
+                - checkoutDate明示、JST基準日付計算、is_available判定ロジックを実装。
+                - 環境変数 `RAKUTEN_APP_ID` を Supabase Secrets に登録・デプロイ完了。
+                - デプロイ後の動作確認で空室データ24件を取得・DB保存成功（2026年1月～3月、ミラコスタ・スイート中心）。
+        - **カレンダーUIからの楽天予約ページ遷移機能**:
+                - `src/pages/calendar.tsx` に `generateRakutenReserveUrl()` 関数を実装。
+                - FullCalendarのイベントクリックで楽天予約ページに遷移（新規タブ、noopener）。
+                - 日付指定付きURL生成（チェックイン・チェックアウト日をYYYY, MM, DD形式でパース）。
+                - URL形式: `https://hotel.travel.rakuten.co.jp/hotelinfo/plan/74733?f_no=74733&f_flg=PLAN&f_nen1=YYYY&f_tuki1=MM&f_hi1=DD&f_nen2=YYYY&f_tuki2=MM&f_hi2=DD&f_otona_su=2&f_heya_su=1`
+                - 大人2名、1室の予約条件を含むパラメータを実装。
+        - **環境変数管理の改善**:
+                - ブラウザキャッシュによる環境変数の古い値が残る問題を確認。
+                - **重要**: ブラウザを閉じた後、再起動して環境変数を最新化する必要あり（開発時の注意点）。
+                - Supabase Edge Function のsecretsは `supabase secrets set` コマンドで設定後、再デプロイが必要。
+        - デプロイ・本番反映: GitHubへpush完了、Vercel自動デプロイ実行中。
+
 * 未完（要対応）:
         - 通知送信パイプラインの完全実装（条件マッチング → `notification_history` 登録 → LINE/Smtp 送信）。
         - 管理APIの保護強化（`/api/admin/*` の本番移行前保護）。
         - 通知設定管理UIの実装（ユーザーが条件を設定できる画面）。
         - 運用監視・エラーハンドリングの強化。
+        - 楽天予約URLの本番動作確認（Vercelデプロイ後の最終検証）。
 
 ## 3. アーキテクチャ（要点）
 * フロントエンド / API: Next.js（API ルートを活用）
@@ -145,6 +166,11 @@ curl -X POST "http://localhost:3004/api/rakuten/fetch-plans" \
         -d '{"params":{"hotelNo":"74733","checkinDate":"2025-11-24","checkoutDate":"2025-11-25"},"upsert":true}'
 ```
 
+**重要: 環境変数の更新とブラウザキャッシュについて**
+- `.env.local` や Supabase Secrets を更新した場合、開発サーバーを再起動してください。
+- **ブラウザを閉じた後、再起動することで環境変数が最新化されます**。ブラウザキャッシュに古い値が残る場合があるため、環境変数を変更した際は必ずブラウザを完全に閉じて再起動してください。
+- Supabase Edge Function の環境変数は `supabase secrets set KEY=VALUE` で設定後、`supabase functions deploy <function-name>` で再デプロイが必要です。
+
 ## 7. セキュリティ / 運用上の注意（追記）
 * 本番環境では `src/pages/api/admin/load-mock-data.ts` のような開発用エンドポイントは削除するか、厳格な認証（OAuth / Supabase Auth + Role）で保護してください。
 * 楽天 API の利用規約を順守し、レート制限に配慮したジョブスケジューリングを実施すること。
@@ -167,7 +193,7 @@ curl -X POST "http://localhost:3004/api/rakuten/fetch-plans" \
 
 ## 10. 実装できていること / できていないこと（要約）
 
-**実装できていること（ローカル検証済）**
+**実装できていること（ローカル検証済 + 本番デプロイ済）**
 - **楽天データ取得エンドポイント**: `POST /api/rakuten/fetch-plans` を実装し、Rakuten Travel API からのレスポンスを正規化して処理可能。
 - **DB への upsert 処理**: 正規化した可用性データを `room_availability` テーブルへ upsert する処理を実装（`source` を付与して保存）。
 - **管理用モック挿入**: `POST /api/admin/load-mock-data` により開発用モックデータを upsert できる（`x-admin-secret` で保護）。
@@ -178,6 +204,17 @@ curl -X POST "http://localhost:3004/api/rakuten/fetch-plans" \
 - **メール送信API**: `src/pages/api/send-email.ts` でユーザーごとにメール送信可能。SMTP環境変数で動作。
 - **ローカル開発環境の起動・トラブルシュート**: Docker/Supabase CLI/config.tomlの問題を解決し、Functionのserveまで動作確認。
 - **通知テスト手順**: curlやPostmanで `/api/send-email` を叩き、テストユーザーにメールが届くことを確認。
+- **Supabase Edge Function による楽天API自動取得**（本番デプロイ済）:
+        - `supabase/functions/monitor-rooms/index.ts` で楽天Travel/VacantHotelSearch APIから180日分の空室データを自動取得・DB保存。
+        - レートリミット対策（リクエスト間隔2秒、429エラー時5秒待機）実装済。
+        - 分割取得方式（30日単位×6回、startOffset/daysパラメータ）で180日制限を回避。
+        - 環境変数 `RAKUTEN_APP_ID` を Supabase Secrets に登録済。
+        - 本番デプロイ後、空室データ24件取得成功（2026年1月～3月）。
+- **カレンダーUIからの楽天予約ページ遷移機能**（本番デプロイ済）:
+        - `src/pages/calendar.tsx` に楽天予約URL生成機能を実装。
+        - イベントクリックで日付指定付き楽天予約ページに遷移（新規タブ）。
+        - URL形式: 年・月・日を分割パラメータ（f_nen1, f_tuki1, f_hi1など）で指定。
+        - 大人2名、1室の予約条件を含む。
 
 **未完 / 要対応**
 - ✅ **Supabase マイグレーション適用**: `supabase/migrations/003_add_source_to_room_availability.sql` を Supabase のプロジェクトに適用済み（2025-11-23完了）。`room_availability.source` カラムが追加され、既存のモックデータに `source = 'mock'` が設定されている。
