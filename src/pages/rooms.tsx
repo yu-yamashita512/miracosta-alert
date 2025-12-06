@@ -196,7 +196,9 @@ export default function Rooms() {
                       )}
                       <p className="text-sm text-gray-500 mt-2">
                         最終確認:{' '}
-                        {format(new Date(room.last_checked_at), 'M月d日 HH:mm', { locale: ja })}
+                        {room.last_checked_at 
+                          ? format(new Date(room.last_checked_at), 'M月d日 HH:mm', { locale: ja })
+                          : '未確認'}
                       </p>
                     </div>
                     {room.is_available && (
