@@ -197,7 +197,7 @@ const Home: NextPage = () => {
             MiraCosta Alert
           </h1>
         </div>
-        <nav className="hidden md:flex gap-6 text-sm tracking-widest opacity-80">
+        <nav className="flex gap-6 text-sm tracking-widest opacity-80">
           <button 
             onClick={() => router.push('/dashboard')}
             className="hover:text-[#C5A059] transition-colors flex items-center gap-2"
