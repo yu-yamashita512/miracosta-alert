@@ -324,55 +324,64 @@ const Home: NextPage = () => {
       </div>
 
       <style jsx global>{`
+        /* Calendar base: white card that matches site cards, subtle gold accents */
         .fc {
-          color: #000; /* Set text color to black */
-          background-color: white; /* Ensure calendar background is white */
+          color: #0f172a; /* default dark text for readability */
+          background: #ffffff; /* solid white card */
+          border-radius: 8px;
         }
-        .fc .fc-daygrid-day-number {
-          color: #000; /* Set day numbers to black */
-        }
-        .fc-event {
-          border: 1px solid transparent;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        .fc-event.room-type-1 {
-          background-color: #FFD700; /* Example color for room type 1 */
-        }
-        .fc-event.room-type-2 {
-          background-color: #FF4500; /* Example color for room type 2 */
-        }
-        .fc-event.room-type-3 {
-          background-color: #32CD32; /* Example color for room type 3 */
-        }
+        /* Toolbar buttons: gold outline matching site accent */
         .fc .fc-button {
-          background-color: rgba(197, 160, 89, 0.2);
-          border-color: #C5A059;
+          background-color: transparent;
+          border: 1px solid rgba(197,160,89,0.12);
           color: #C5A059;
         }
         .fc .fc-button:hover {
-          background-color: rgba(197, 160, 89, 0.4);
+          background-color: rgba(197,160,89,0.06);
         }
         .fc .fc-button-active {
           background-color: #C5A059 !important;
           color: #0C1445 !important;
         }
+        /* Subtle borders for grid to blend with card */
         .fc-theme-standard td,
         .fc-theme-standard th {
-          border-color: rgba(197, 160, 89, 0.2);
+          border-color: rgba(15,23,42,0.04);
         }
+        /* Day numbers and header text: darker for readability */
         .fc .fc-daygrid-day-number {
-          color: #F0F4F8;
+          color: #0f172a; /* dark slate */
+          font-weight: 600;
         }
         .fc .fc-col-header-cell-cushion {
-          color: #C5A059;
+          color: #C5A059; /* keep gold for weekday names */
         }
+        /* Today highlight: soft gold wash */
         .fc .fc-daygrid-day.fc-day-today {
-          background-color: rgba(197, 160, 89, 0.1);
+          background-image: linear-gradient(0deg, rgba(197,160,89,0.04), rgba(197,160,89,0.04));
         }
+
+        /* Event styling: pill-like with room-type classes and dark text */
+        .fc-event {
+          border-radius: 6px;
+          padding: 2px 4px;
+          color: #0f172a !important; /* dark text on event */
+          font-weight: 600;
+          box-shadow: none;
+          border: 1px solid rgba(0,0,0,0.06);
+        }
+        /* Room-type colors — tweak as needed to ensure contrast */
+        .fc-event.room-type-1 { background-color: #FFDDAA; }
+        .fc-event.room-type-2 { background-color: #FFCCB3; }
+        .fc-event.room-type-3 { background-color: #D1F7C4; }
+        .fc-event.room-type-4 { background-color: #C9E6FF; }
+
+        /* Ensure toolbar title centered */
         .fc-toolbar-title {
-          text-align: center; /* Center align the calendar title */
-          width: 100%; /* Ensure it spans the full width */
+          text-align: center;
+          width: 100%;
+          color: #0f172a;
+          font-weight: 700;
         }
       `}</style>
     </main>
