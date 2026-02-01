@@ -74,6 +74,12 @@ serve(async (req) => {
         }
         if (room.is_available && newRoom) {
           await triggerNotifications(supabase, newRoom.id, room)
+          // Twitter自動投稿（存在すれば呼び出す）
+          try {
+            await sendTwitterNotification(supabase, room)
+          } catch (e) {
+            console.error('Twitter post error:', e)
+          }
         }
       } else if (existingRoom.is_available !== room.is_available) {
         const { data: updatedRoom, error } = await supabase
@@ -93,6 +99,12 @@ serve(async (req) => {
         }
         if (room.is_available && !existingRoom.is_available && updatedRoom) {
           await triggerNotifications(supabase, updatedRoom.id, room)
+          // Twitter自動投稿（存在すれば呼び出す）
+          try {
+            await sendTwitterNotification(supabase, room)
+          } catch (e) {
+            console.error('Twitter post error:', e)
+          }
         }
       } else {
         await supabase
@@ -509,5 +521,39 @@ async function sendLineNotification(
       status: 'failed',
       error_message: error.message,
     })
+  }
+}
+
+/**
+ * Supabase Edge Function `post-to-twitter` を呼び出して投稿する（存在すれば）
+ * 環境変数: POST_TO_TWITTER_URL に `post-to-twitter` 関数のエンドポイントを入れておく
+ */
+async function sendTwitterNotification(supabase: any, room: RoomAvailability) {
+  try {
+    const fnUrl = Deno.env.get('POST_TO_TWITTER_URL')
+    if (!fnUrl) {
+      console.log('POST_TO_TWITTER_URL not configured — skipping Twitter post')
+      return
+    }
+
+    const dedupeKey = `${room.date}__${room.room_type}`
+    const text = `🏰 ミラコスタ空室\n日付: ${room.date}\n部屋: ${room.room_type}\n料金: ${room.price ? `¥${room.price}` : '不明'}`
+
+    const resp = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, dedupe_key: dedupeKey }),
+    })
+
+    if (!resp.ok) {
+      const body = await resp.text()
+      console.error('post-to-twitter failed', resp.status, body)
+      return
+    }
+
+    const json = await resp.json()
+    console.log('post-to-twitter result', json)
+  } catch (error) {
+    console.error('sendTwitterNotification error', error)
   }
 }
