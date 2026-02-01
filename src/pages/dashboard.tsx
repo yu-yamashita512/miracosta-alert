@@ -46,7 +46,11 @@ export default function Dashboard() {
       .single()
 
     if (userData) {
-      setUser(userData)
+      const safeUser = {
+        email: userData.email,
+        subscription_plan: (userData.subscription_plan ?? 'free') as 'free' | 'premium',
+      }
+      setUser(safeUser as any)
     }
 
     // 通知履歴取得
